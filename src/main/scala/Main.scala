@@ -1,3 +1,4 @@
+import cats._
 import cats.effect._
 import cats.implicits._
 import doobie._
@@ -8,7 +9,7 @@ object Main extends IOApp {
   // Resource yielding a transactor configured with a bounded connect EC and an unbounded
   // transaction EC. Everything will be closed and shut down cleanly after use.
   val transactor: Resource[IO, H2Transactor[IO]] = {
-    val url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"
+    val url = "jdbc:h2:mem:test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
 
     for {
       ec <- ExecutionContexts.fixedThreadPool[IO](32)
@@ -16,50 +17,22 @@ object Main extends IOApp {
     } yield xa
   }
 
-  val setupTenant =
-    sql"""
-      CREATE TABLE tenant (
-        source INT,
-        name STRING
-      )
-    """.update.run
-
-  val setupValue =
-    sql"""
-      CREATE TABLE value (
-        id STRING,
-        value STRING
-      )
-    """.update.run
-
-  val setupTenantValue =
-    sql"""
-      CREATE TABLE tenant_value (
-        tenant_id STRING,
-        value_id STRING
-      )
-    """.stripMargin
-
-  val setupEdge =
-    sql"""
-      CREATE TABLE edge (
-        source INT,
-        target INT
-      )
-    """.update.run
-
-  def insert(source: Int, target: Int): Update0 =
-    sql"insert into edge (source, target) values ($source, $target)".update
-
-  Tree.test(Tree.example)
+  // Debugging - re-add after https://github.com/tpolecat/doobie/pull/1566/files
+  // implicit val handler: LogHandler = LogHandler.jdkLogHandler
 
   override def run(args: List[String]): IO[ExitCode] =
     transactor.use { xa =>
       for {
-        _ <- setupEdge.transact(xa)
-        _ <- insert(1, 2).run.transact(xa)
-        n <- sql"SELECT 'Hello World!' FROM edge".query[String].unique.transact(xa)
-        _ <- IO(println(n))
+        _ <- List(db.Tenant.setup, db.Value.setup, db.TenantValue.setup).traverse(_.transact(xa))
+        alice <- db.Tenant.insert("Alice").transact(xa)
+        _ <- IO(println(alice))
+        bob <- db.Tenant.insert("Bob").transact(xa)
+        _ <- IO(println(bob))
+        _ <- db.Value.insert("foo").transact(xa)
+        _ <- db.Value.insert("bar").transact(xa)
+        _ <- db.Value.insert("bar").transact(xa)
+        _ <- db.Value.insert("baz").transact(xa)
+        _ <- sql"select id, value from value".query[(String, String)].stream.transact(xa).map(println).compile.drain
       } yield ExitCode.Success
-    }
+   }
 }
