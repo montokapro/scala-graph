@@ -16,10 +16,49 @@ object Main extends IOApp {
     } yield xa
   }
 
+  val setupTenant =
+    sql"""
+      CREATE TABLE tenant (
+        source INT,
+        name STRING
+      )
+    """.update.run
+
+  val setupValue =
+    sql"""
+      CREATE TABLE value (
+        id STRING,
+        value STRING
+      )
+    """.update.run
+
+  val setupTenantValue =
+    sql"""
+      CREATE TABLE tenant_value (
+        tenant_id STRING,
+        value_id STRING
+      )
+    """.stripMargin
+
+  val setupEdge =
+    sql"""
+      CREATE TABLE edge (
+        source INT,
+        target INT
+      )
+    """.update.run
+
+  def insert(source: Int, target: Int): Update0 =
+    sql"insert into edge (source, target) values ($source, $target)".update
+
+  Tree.test(Tree.example)
+
   override def run(args: List[String]): IO[ExitCode] =
     transactor.use { xa =>
       for {
-        n <- sql"select 'Hello World!'".query[String].unique.transact(xa)
+        _ <- setupEdge.transact(xa)
+        _ <- insert(1, 2).run.transact(xa)
+        n <- sql"SELECT 'Hello World!' FROM edge".query[String].unique.transact(xa)
         _ <- IO(println(n))
       } yield ExitCode.Success
     }
