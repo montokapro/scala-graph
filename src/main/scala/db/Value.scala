@@ -1,7 +1,9 @@
 package db;
 
+import cats.implicits._
 import doobie._
 import doobie.implicits._
+import doobie.free.connection
 import doobie.free.connection.ConnectionIO
 
 /**
@@ -17,6 +19,8 @@ object Value {
       )
     """.stripMargin.update.run
 
-  def insert(value: String): ConnectionIO[Int] =
-    sql"insert into value (id, value) values (${digest(value)}, $value) ON CONFLICT DO NOTHING".update.run
+  def insert(value: String): ConnectionIO[String] = {
+    val id = digest(value)
+    sql"insert into value (id, value) values ($id, $value) ON CONFLICT DO NOTHING".update.run *> connection.pure(id)
+  }
 }
