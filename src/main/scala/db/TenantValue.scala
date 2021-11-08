@@ -7,7 +7,7 @@ import doobie.free.connection.ConnectionIO
 object TenantValue {
   val setup: ConnectionIO[Int] =
     sql"""
-      CREATE TABLE tenant_value (
+      CREATE TABLE IF NOT EXISTS tenant_value (
         tenant_id INT NOT NULL,
         value_id VARCHAR NOT NULL,
         PRIMARY KEY(tenant_id, value_id),
