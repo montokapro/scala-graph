@@ -3,8 +3,7 @@ package db;
 import cats.implicits._
 import doobie._
 import doobie.implicits._
-import doobie.free.connection
-import doobie.free.connection.ConnectionIO
+import fs2._
 
 object Edge {
   val setup: ConnectionIO[Int] =
@@ -18,5 +17,9 @@ object Edge {
 
   def insert(input: String, output: String): ConnectionIO[Int] = {
     sql"insert into edge (input, output) values ($input, $output) ON CONFLICT DO NOTHING".update.run
+  }
+
+  def lookup(input: String): Stream[ConnectionIO, String] = {
+    sql"select output from edge where input = $input".query[String].stream
   }
 }

@@ -2,7 +2,6 @@ package db;
 
 import doobie._
 import doobie.implicits._
-import doobie.free.connection.ConnectionIO
 
 object Tenant {
   val setup: ConnectionIO[Int] =

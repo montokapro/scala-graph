@@ -4,7 +4,6 @@ import cats.implicits._
 import doobie._
 import doobie.implicits._
 import doobie.free.connection
-import doobie.free.connection.ConnectionIO
 
 /**
  * Value is content-addressed, and immutable. Its records may always be safely cached or read from a replica.

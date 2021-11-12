@@ -33,4 +33,17 @@ class EdgeSpec extends AnyFunSpec {
     assert(input == "foo")
     assert(output == "bar")
   }
+
+  it("should lookup outputs") {
+    val program = for {
+      _ <- db.Edge.setup
+      _ <- db.Edge.insert("foo", "bar")
+      _ <- db.Edge.insert("foo", "baz")
+      outputs <- db.Edge.lookup("foo").compile.toList
+    } yield outputs
+
+    val outputs = transactor.use(program.transact).unsafeRunSync()
+
+    assert(outputs.toSet == Set("bar", "baz"))
+  }
 }
