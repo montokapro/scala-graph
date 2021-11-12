@@ -1,3 +1,5 @@
+package db;
+
 import org.scalatest.funspec.AnyFunSpec
 
 import cats.effect._
