@@ -4,7 +4,6 @@ import org.scalatest.funspec.AnyFunSpec
 
 import cats.effect._
 import cats.effect.unsafe.implicits.global
-import doobie._
 import doobie.implicits._
 
 class ValueSpec extends AnyFunSpec {
