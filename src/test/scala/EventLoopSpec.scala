@@ -5,23 +5,9 @@ import cats.effect.std.Queue
 import cats.effect.unsafe.implicits.global
 import doobie._
 import doobie.implicits._
-import doobie.h2._
 import fs2._
 
 class EventLoopSpec extends AnyFunSpec {
-  // Resource yielding a transactor configured with a bounded connect EC and an unbounded
-  // transaction EC. Everything will be closed and shut down cleanly after use.
-  def transactor: Resource[IO, Transactor[IO]] = {
-    val databaseName = scala.util.Random.alphanumeric.take(16).mkString
-
-    val url = s"jdbc:h2:mem:$databaseName;MODE=PostgreSQL"
-
-    for {
-      ec <- ExecutionContexts.fixedThreadPool[IO](1)
-      xa <- H2Transactor.newH2Transactor[IO](url, "username", "password", ec)
-    } yield xa
-  }
-
   it("should enqueue and dequeue") {
     val queue: IO[Queue[IO, String]] = Queue.unbounded[IO, String]
 
@@ -38,7 +24,7 @@ class EventLoopSpec extends AnyFunSpec {
   }
 
   it("should trigger") {
-    val program = transactor.use { xa =>
+    val program = db.transactor.use { xa =>
       val queue: IO[Queue[IO, String]] = Queue.unbounded[IO, String]
 
       val setup = for {
