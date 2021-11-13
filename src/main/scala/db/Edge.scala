@@ -8,7 +8,7 @@ import fs2._
 object Edge {
   val setup: ConnectionIO[Int] =
     sql"""
-      CREATE TABLE IF NOT EXISTS edge (
+      CREATE TABLE edge (
         input VARCHAR NOT NULL,
         output VARCHAR NOT NULL,
         PRIMARY KEY(input, output)

@@ -11,13 +11,15 @@ import fs2._
 class EventLoopSpec extends AnyFunSpec {
   // Resource yielding a transactor configured with a bounded connect EC and an unbounded
   // transaction EC. Everything will be closed and shut down cleanly after use.
-  val transactor: Resource[IO, Transactor[IO]] = {
-    val url = "jdbc:h2:mem:test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
+  def transactor: Resource[IO, Transactor[IO]] = {
+    val databaseName = scala.util.Random.alphanumeric.take(16).mkString
+
+    val url = s"jdbc:h2:mem:$databaseName;MODE=PostgreSQL"
 
     for {
       ec <- ExecutionContexts.fixedThreadPool[IO](1)
       xa <- H2Transactor.newH2Transactor[IO](url, "username", "password", ec)
-    } yield Transactor.after.set(xa, HC.rollback)
+    } yield xa
   }
 
   it("should enqueue and dequeue") {
@@ -36,21 +38,24 @@ class EventLoopSpec extends AnyFunSpec {
   }
 
   it("should trigger") {
-    val queue: IO[Queue[IO, String]] = Queue.unbounded[IO, String]
+    val program = transactor.use { xa =>
+      val queue: IO[Queue[IO, String]] = Queue.unbounded[IO, String]
 
-    val setup = for {
-      _ <- db.Edge.setup
-      _ <- db.Edge.insert("foo", "bar")
-      _ <- db.Edge.insert("foo", "baz")
-    } yield ()
+      val setup = for {
+        _ <- db.Edge.setup
+        _ <- db.Edge.insert("foo", "bar")
+        _ <- db.Edge.insert("foo", "baz")
+      } yield ()
 
-    val program = for {
-      _ <- transactor.use(setup.transact)
-      q <- queue
-      _ <- q.offer("foo")
-      event <- q.take
-      triggered <- transactor.use(db.Edge.lookup(event).compile.toList.transact)
-    } yield triggered
+      for {
+        _ <- setup.transact(xa)
+        q <- queue
+        _ <- q.offer("foo")
+        event <- q.take
+        triggered <- db.Edge.lookup(event).compile.toList.transact(xa)
+      } yield triggered
+
+    }
 
     val outputs = program.unsafeRunSync()
 

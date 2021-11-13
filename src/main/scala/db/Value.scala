@@ -11,7 +11,7 @@ import doobie.free.connection
 object Value {
   val setup: ConnectionIO[Int] =
     sql"""
-      CREATE TABLE IF NOT EXISTS value (
+      CREATE TABLE value (
         id VARCHAR NOT NULL,
         value VARCHAR NOT NULL,
         PRIMARY KEY(id)
