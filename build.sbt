@@ -10,9 +10,7 @@ lazy val root = project
   .settings(
     name := "graph",
     version := "0.1.0-SNAPSHOT",
-
     scalaVersion := scala3Version,
-
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-effect" % catsEffectVersion,
       "org.tpolecat" %% "doobie-core" % doobieVersion,
