@@ -5,9 +5,9 @@ import doobie._
 import doobie.implicits._
 import doobie.free.connection
 
-/**
- * Value is content-addressed, and immutable. Its records may always be safely cached or read from a replica.
- */
+/** Value is content-addressed, and immutable. Its records may always be safely
+  * cached or read from a replica.
+  */
 object Value {
   val setup: ConnectionIO[Int] =
     sql"""
@@ -20,6 +20,7 @@ object Value {
 
   def insert(value: String): ConnectionIO[String] = {
     val id = digest(value)
-    sql"insert into value (id, value) values ($id, $value) ON CONFLICT DO NOTHING".update.run *> connection.pure(id)
+    sql"insert into value (id, value) values ($id, $value) ON CONFLICT DO NOTHING".update.run *> connection
+      .pure(id)
   }
 }

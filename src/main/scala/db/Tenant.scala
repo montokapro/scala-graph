@@ -14,5 +14,6 @@ object Tenant {
     """.stripMargin.update.run
 
   def insert(name: String): ConnectionIO[Int] =
-    sql"insert into tenant (name) values ($name)".update.withUniqueGeneratedKeys("id")
+    sql"insert into tenant (name) values ($name)".update
+      .withUniqueGeneratedKeys("id")
 }

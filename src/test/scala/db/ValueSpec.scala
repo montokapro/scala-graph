@@ -8,7 +8,8 @@ import doobie.implicits._
 
 class ValueSpec extends AnyFunSpec {
   it("should insert long value") {
-    val text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+    val text =
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
 
     val program = for {
       _ <- db.Value.setup
@@ -29,7 +30,8 @@ class ValueSpec extends AnyFunSpec {
       selectId <- sql"select id from value".query[String].unique
     } yield (insertId, ignoreId, selectId)
 
-    val (insertId, ignoreId, selectId) = transactor.use(program.transact).unsafeRunSync()
+    val (insertId, ignoreId, selectId) =
+      transactor.use(program.transact).unsafeRunSync()
 
     assert(insertId == ignoreId)
     assert(insertId == selectId)
