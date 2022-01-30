@@ -7,14 +7,19 @@ import fs2._
 
 case class Tree(value: String, children: Vector[Tree])
 
+// Not optimized for efficiency. Consider batching, transaction boundaries.
 object Tree {
-  def insert(parent: Tree, xa: Transactor[IO]): IO[Unit] = {
-    parent.children.foldMap { child =>
-      db.Edge.insert(parent.value, child.value).transact(xa) *> insert(
-        child,
-        xa
-      )
+  def toEdges(parent: Tree): Stream[Pure, (String, String)] =
+    Stream.emits(parent.children).flatMap { child =>
+      Stream.emit((parent.value, child.value)) ++ toEdges(child)
     }
+
+  def insert(parent: Tree, xa: Transactor[IO]): IO[Unit] = {
+    toEdges(parent)
+      .evalMap(edge => db.Edge.insert(edge._1, edge._2))
+      .transact(xa)
+      .compile
+      .drain
   }
 
   def lookup(parent: String, xa: Transactor[IO]): IO[Tree] = {
