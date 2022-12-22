@@ -1,15 +1,16 @@
 package db;
 
+import org.scalatest.funspec.AnyFunSpec
+
 import cats.effect._
 import cats.effect.unsafe.implicits.global
 import doobie.implicits._
-import org.scalatest.funspec.AnyFunSpec
 import scala.collection.immutable.ArraySeq
 
 class JunctionSpec extends AnyFunSpec {
-  val foo = "foo".getBytes("UTF-8")
-  val bar = "bar".getBytes("UTF-8")
-  val baz = "baz".getBytes("UTF-8")
+  def foo = "foo".getBytes("UTF-8")
+  def bar = "bar".getBytes("UTF-8")
+  def baz = "baz".getBytes("UTF-8")
 
   it("should insert idempotently") {
     val program = for {

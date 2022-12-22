@@ -10,20 +10,20 @@ object Edge {
   val setup: ConnectionIO[Int] =
     sql"""
       CREATE TABLE edge (
-        id VARCHAR NOT NULL,
-        input VARCHAR NOT NULL,
-        output VARCHAR NOT NULL,
+        id BYTEA NOT NULL,
+        input BYTEA NOT NULL,
+        output BYTEA NOT NULL,
         PRIMARY KEY (id),
         UNIQUE (input, output)
       )
     """.stripMargin.update.run
 
-  def insert(input: String, output: String): ConnectionIO[String] = {
-    val id = digest(input + output)
+  def insert(input: Array[Byte], output: Array[Byte]): ConnectionIO[Array[Byte]] = {
+    val id = input.concat(output).digest
     sql"insert into edge (id, input, output) values ($id, $input, $output) ON CONFLICT DO NOTHING".update.run *> connection.pure(id)
   }
 
-  def lookup(input: String): Stream[ConnectionIO, String] = {
-    sql"select output from edge where input = $input".query[String].stream
+  def lookup(input: Array[Byte]): Stream[ConnectionIO, Array[Byte]] = {
+    sql"select output from edge where input = $input".query[Array[Byte]].stream
   }
 }
