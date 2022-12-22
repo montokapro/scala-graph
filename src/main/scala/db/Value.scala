@@ -14,7 +14,7 @@ object Value {
       CREATE TABLE value (
         id VARCHAR NOT NULL,
         value VARCHAR NOT NULL,
-        PRIMARY KEY(id)
+        PRIMARY KEY (id)
       )
     """.stripMargin.update.run
 
