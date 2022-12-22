@@ -1,6 +1,13 @@
 package db;
 
+import doobie._
 import java.security.MessageDigest
+import scala.collection.immutable.ArraySeq
+
+type ByteSeq = ArraySeq[Byte]
+
+implicit val byteSeqMeta: Meta[ByteSeq] =
+  Meta[Array[Byte]].imap(ArraySeq.unsafeWrapArray)(_.toArray)
 
 // TODO: confirm digest has consistent length
 def digest(value: String): String =
@@ -17,6 +24,13 @@ extension (array: Array[Byte])
       .digest(array)
 
   def invert: Array[Byte] =
+    array.map(v => (~v).toByte)
+
+extension (array: ByteSeq)
+  def digest: ByteSeq =
+    ArraySeq.unsafeWrapArray(array.toArray.digest)
+
+  def invert: ByteSeq =
     array.map(v => (~v).toByte)
 
 // Adapted from:

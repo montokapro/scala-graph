@@ -6,6 +6,7 @@ import doobie.implicits._
 import doobie.free.connection
 import fs2._
 import db.ArrayOrdering
+import scala.collection.immutable.ArraySeq
 
 object Junction {
   val setup: ConnectionIO[Int] =
@@ -18,14 +19,14 @@ object Junction {
       )
     """.stripMargin.update.run
 
-  def insert(values: Vector[Array[Byte]]): ConnectionIO[Array[Byte]] = {
+  def insert(values: Vector[ByteSeq]): ConnectionIO[ByteSeq] = {
     val key = values.sorted.combineAll.digest
     val rows = values.map((key, _))
     val sql = "INSERT INTO junction (key, value) VALUES (?, ?) ON CONFLICT DO NOTHING"
-    Update[(Array[Byte], Array[Byte])](sql).updateMany(rows) *> connection.pure(key)
+    Update[(ByteSeq, ByteSeq)](sql).updateMany(rows) *> connection.pure(key)
   }
 
-  def lookup(key: Array[Byte]): Stream[ConnectionIO, Array[Byte]] = {
-    sql"select value from junction where key = $key".query[Array[Byte]].stream
+  def lookup(key: ByteSeq): Stream[ConnectionIO, ByteSeq] = {
+    sql"select value from junction where key = $key".query[ByteSeq].stream
   }
 }

@@ -8,9 +8,9 @@ import doobie.implicits._
 import scala.collection.immutable.ArraySeq
 
 class JunctionSpec extends AnyFunSpec {
-  def foo = "foo".getBytes("UTF-8")
-  def bar = "bar".getBytes("UTF-8")
-  def baz = "baz".getBytes("UTF-8")
+  def foo = ArraySeq.unsafeWrapArray("foo".getBytes("UTF-8"))
+  def bar = ArraySeq.unsafeWrapArray("bar".getBytes("UTF-8"))
+  def baz = ArraySeq.unsafeWrapArray("baz".getBytes("UTF-8"))
 
   it("should insert idempotently") {
     val program = for {
@@ -22,8 +22,8 @@ class JunctionSpec extends AnyFunSpec {
 
     val (key0, key1, key2) = transactor.use(program.transact).unsafeRunSync()
 
-    assert(ArraySeq.from(key0) != ArraySeq.from(key1))
-    assert(ArraySeq.from(key1) == ArraySeq.from(key2))
+    assert(key0 != key1)
+    assert(key1 == key2)
   }
 
   it("should loookup values") {
@@ -36,6 +36,6 @@ class JunctionSpec extends AnyFunSpec {
 
     val values = transactor.use(program.transact).unsafeRunSync()
 
-    assert(values.toSet.map(ArraySeq.from) == Set(bar, baz).map(ArraySeq.from))
+    assert(values.toSet == Set(bar, baz))
   }
 }
