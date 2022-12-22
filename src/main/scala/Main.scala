@@ -1,11 +1,19 @@
+import db._
 import cats._
 import cats.effect._
 import cats.implicits._
 import doobie._
 import doobie.implicits._
 import doobie.h2._
+import scala.collection.immutable.ArraySeq
 
 object Main extends IOApp {
+  def foo = ArraySeq.unsafeWrapArray("foo".getBytes("UTF-8"))
+  def bar = ArraySeq.unsafeWrapArray("bar".getBytes("UTF-8"))
+  def baz = ArraySeq.unsafeWrapArray("baz".getBytes("UTF-8"))
+
+  def text = ArraySeq.unsafeWrapArray("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.".getBytes("UTF-8"))
+
   // Resource yielding a transactor configured with a bounded connect EC and an unbounded
   // transaction EC. Everything will be closed and shut down cleanly after use.
   val transactor: Resource[IO, H2Transactor[IO]] = {
@@ -30,29 +38,25 @@ object Main extends IOApp {
         bobId <- db.Tenant.insert("Bob").transact(xa)
 
         // Tenants may insert any value they like
-        _ <- db.TenantValue.insertValue(aliceId, "foo").transact(xa)
+        _ <- db.TenantValue.insertValue(aliceId, foo).transact(xa)
 
         // Multiple tenants may insert the same value
-        _ <- db.TenantValue.insertValue(aliceId, "bar").transact(xa)
-        _ <- db.TenantValue.insertValue(bobId, "bar").transact(xa)
+        _ <- db.TenantValue.insertValue(aliceId, bar).transact(xa)
+        _ <- db.TenantValue.insertValue(bobId, bar).transact(xa)
 
         // Values may be shared between tenants by reference
-        bazId <- db.TenantValue.insertValue(aliceId, "baz").transact(xa)
+        bazId <- db.TenantValue.insertValue(aliceId, baz).transact(xa)
         _ <- db.TenantValue.insert(bobId, bazId).transact(xa)
 
         // Long values are supported, and can be cached
-        _ <- db.Value
-          .insert(
-            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-          )
-          .transact(xa)
+        _ <- db.Value.insert(text).transact(xa)
 
         _ <- IO(println("tenant"))
         _ <- sql"select id, name from tenant"
           .query[(Int, String)]
           .stream
           .transact(xa)
-          .map(println)
+          .evalMap(IO.println)
           .compile
           .drain
 
@@ -61,16 +65,17 @@ object Main extends IOApp {
           .query[(Int, String)]
           .stream
           .transact(xa)
-          .map(println)
+          .evalMap(IO.println)
           .compile
           .drain
 
         _ <- IO(println("value"))
         _ <- sql"select id, value from value"
-          .query[(String, String)]
+          .query[(String, ByteSeq)]
           .stream
           .transact(xa)
-          .map(println)
+          .map((id, value) => (id, value.map(_.toChar).mkString))
+          .evalMap(IO.println)
           .compile
           .drain
       } yield ExitCode.Success

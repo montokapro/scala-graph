@@ -5,7 +5,6 @@ import doobie._
 import doobie.implicits._
 import doobie.free.connection
 import fs2._
-import db.ArrayOrdering
 import scala.collection.immutable.ArraySeq
 
 object Junction {
@@ -26,7 +25,11 @@ object Junction {
     Update[(ByteSeq, ByteSeq)](sql).updateMany(rows) *> connection.pure(key)
   }
 
-  def lookup(key: ByteSeq): Stream[ConnectionIO, ByteSeq] = {
+  def lookupValues(key: ByteSeq): Stream[ConnectionIO, ByteSeq] = {
     sql"select value from junction where key = $key".query[ByteSeq].stream
+  }
+
+  def lookupKeys(value: ByteSeq): Stream[ConnectionIO, ByteSeq] = {
+    sql"select key from junction where value = $value".query[ByteSeq].stream
   }
 }

@@ -1,5 +1,6 @@
 import org.scalatest.funspec.AnyFunSpec
 
+import db._
 import cats._
 import cats.effect._
 import cats.effect.std.Queue
@@ -8,23 +9,16 @@ import cats.implicits._
 import doobie.implicits._
 import scala.collection.immutable.ArraySeq
 
-trait ByteArrayInstances {
-  implicit val eq: Eq[Array[Byte]] = new Eq[Array[Byte]] {
-    def eqv(x: Array[Byte], y: Array[Byte]): Boolean =
-      ArraySeq.from(x) == ArraySeq.from(y)
-  }
-}
-
-class EventLoopSpec extends AnyFunSpec with ByteArrayInstances {
-  def not = "not".getBytes("UTF-8")
-  def foo = "foo".getBytes("UTF-8")
-  def bar = "bar".getBytes("UTF-8")
-  def baz = "baz".getBytes("UTF-8")
-  def fizz = "fizz".getBytes("UTF-8")
-  def buzz = "buzz".getBytes("UTF-8")
+class EventLoopSpec extends AnyFunSpec {
+  def not = ArraySeq.unsafeWrapArray("not".getBytes("UTF-8"))
+  def foo = ArraySeq.unsafeWrapArray("foo".getBytes("UTF-8"))
+  def bar = ArraySeq.unsafeWrapArray("bar".getBytes("UTF-8"))
+  def baz = ArraySeq.unsafeWrapArray("baz".getBytes("UTF-8"))
+  def fizz = ArraySeq.unsafeWrapArray("fizz".getBytes("UTF-8"))
+  def buzz = ArraySeq.unsafeWrapArray("buzz".getBytes("UTF-8"))
 
   it("should enqueue and dequeue") {
-    val queue: IO[Queue[IO, Array[Byte]]] = Queue.unbounded[IO, Array[Byte]]
+    val queue: IO[Queue[IO, ByteSeq]] = Queue.unbounded[IO, ByteSeq]
 
     val program = for {
       q <- queue
@@ -35,12 +29,12 @@ class EventLoopSpec extends AnyFunSpec with ByteArrayInstances {
 
     val f = program.unsafeRunSync()
 
-    assert(ArraySeq.from(f) == ArraySeq.from(foo))
+    assert(f == foo)
   }
 
   it("should trigger") {
     val program = db.transactor.use { xa =>
-      val queue: IO[Queue[IO, Array[Byte]]] = Queue.unbounded[IO, Array[Byte]]
+      val queue: IO[Queue[IO, ByteSeq]] = Queue.unbounded[IO, ByteSeq]
 
       val setup = for {
         _ <- db.Edge.setup
@@ -59,7 +53,7 @@ class EventLoopSpec extends AnyFunSpec with ByteArrayInstances {
 
     val outputs = program.unsafeRunSync()
 
-    assert(outputs.toSet.map(ArraySeq.from) == Set(bar, baz).map(ArraySeq.from))
+    assert(outputs.toSet == Set(bar, baz))
   }
 
   it("should traverse graph") {
@@ -73,16 +67,16 @@ class EventLoopSpec extends AnyFunSpec with ByteArrayInstances {
         _ <- db.Edge.insert(baz, buzz)
       } yield ()
 
-      def handle(event: Array[Byte]): IO[Unit] = IO.unit // IO(println(event))
+      def handle(event: ByteSeq): IO[Unit] = IO.unit // IO(println(event))
 
-      def enqueue(queue: Queue[IO, Array[Byte]], input: Array[Byte]): IO[List[Array[Byte]]] = {
+      def enqueue(queue: Queue[IO, ByteSeq], input: ByteSeq): IO[List[ByteSeq]] = {
         for {
           outputs <- db.Edge.lookup(input).compile.toList.transact(xa)
           _ <- outputs.traverse(handle *> queue.offer)
         } yield outputs
       }
 
-      def loop(queue: Queue[IO, Array[Byte]]): IO[List[Array[Byte]]] = {
+      def loop(queue: Queue[IO, ByteSeq]): IO[List[ByteSeq]] = {
         for {
           event <- queue.tryTake
           outputs <- event.fold(IO.pure(List.empty))(input =>
@@ -93,7 +87,7 @@ class EventLoopSpec extends AnyFunSpec with ByteArrayInstances {
 
       for {
         _ <- setup.transact(xa)
-        q <- Queue.unbounded[IO, Array[Byte]]
+        q <- Queue.unbounded[IO, ByteSeq]
         _ <- q.offer(foo)
         outputs <- loop(q)
       } yield outputs
@@ -101,6 +95,6 @@ class EventLoopSpec extends AnyFunSpec with ByteArrayInstances {
 
     val outputs = program.unsafeRunSync()
 
-    assert(outputs.toSet.map(ArraySeq.from) == Set(bar, baz, fizz, buzz).map(ArraySeq.from))
+    assert(outputs.toSet == Set(bar, baz, fizz, buzz))
   }
 }
