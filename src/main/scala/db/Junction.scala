@@ -5,7 +5,6 @@ import doobie._
 import doobie.implicits._
 import doobie.free.connection
 import fs2._
-import db.ArrayOrdering
 import scala.collection.immutable.ArraySeq
 
 object Junction {

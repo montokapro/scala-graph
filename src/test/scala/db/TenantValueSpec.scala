@@ -6,8 +6,11 @@ import cats.implicits._
 import cats.effect._
 import cats.effect.unsafe.implicits.global
 import doobie.implicits._
+import scala.collection.immutable.ArraySeq
 
 class TenantValueSpec extends AnyFunSpec {
+  def foo = ArraySeq.unsafeWrapArray("foo".getBytes("UTF-8"))
+
   describe("insertValue") {
     it("should insert record") {
       val program = for {
@@ -17,7 +20,7 @@ class TenantValueSpec extends AnyFunSpec {
           db.TenantValue.setup
         ).sequence
         tenantId <- db.Tenant.insert("Alice")
-        valueId <- db.Value.insert("foo")
+        valueId <- db.Value.insert(foo)
         _ <- db.TenantValue.insert(tenantId, valueId)
         count <- sql"select count(*) from tenant_value".query[Int].unique
       } yield count
@@ -34,7 +37,7 @@ class TenantValueSpec extends AnyFunSpec {
           db.Value.setup,
           db.TenantValue.setup
         ).sequence
-        valueId <- db.Value.insert("foo")
+        valueId <- db.Value.insert(foo)
         _ <- db.TenantValue.insert(-1, valueId)
       } yield ()
 
@@ -51,7 +54,7 @@ class TenantValueSpec extends AnyFunSpec {
           db.TenantValue.setup
         ).sequence
         tenantId <- db.Tenant.insert("Alice")
-        _ <- db.TenantValue.insert(tenantId, "")
+        _ <- db.TenantValue.insert(tenantId, ArraySeq.empty)
       } yield ()
 
       assertThrows[java.sql.SQLIntegrityConstraintViolationException] {
@@ -67,7 +70,7 @@ class TenantValueSpec extends AnyFunSpec {
           db.TenantValue.setup
         ).sequence
         tenantId <- db.Tenant.insert("Alice")
-        valueId <- db.Value.insert("foo")
+        valueId <- db.Value.insert(foo)
         _ <- db.TenantValue.insert(tenantId, valueId)
         _ <- db.TenantValue.insert(tenantId, valueId)
       } yield ()
@@ -88,8 +91,8 @@ class TenantValueSpec extends AnyFunSpec {
         ).sequence
         aliceId <- db.Tenant.insert("Alice")
         bobId <- db.Tenant.insert("Bob")
-        _ <- db.TenantValue.insertValue(aliceId, "foo")
-        _ <- db.TenantValue.insertValue(bobId, "foo")
+        _ <- db.TenantValue.insertValue(aliceId, foo)
+        _ <- db.TenantValue.insertValue(bobId, foo)
         tenantCount <- sql"select count(*) from tenant".query[Int].unique
         tenantValueCount <- sql"select count(*) from tenant_value"
           .query[Int]

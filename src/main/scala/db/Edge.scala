@@ -18,12 +18,12 @@ object Edge {
       )
     """.stripMargin.update.run
 
-  def insert(input: Array[Byte], output: Array[Byte]): ConnectionIO[Array[Byte]] = {
-    val id = input.concat(output).digest
+  def insert(input: ByteSeq, output: ByteSeq): ConnectionIO[ByteSeq] = {
+    val id = (input |+| output).digest
     sql"insert into edge (id, input, output) values ($id, $input, $output) ON CONFLICT DO NOTHING".update.run *> connection.pure(id)
   }
 
-  def lookup(input: Array[Byte]): Stream[ConnectionIO, Array[Byte]] = {
-    sql"select output from edge where input = $input".query[Array[Byte]].stream
+  def lookup(input: ByteSeq): Stream[ConnectionIO, ByteSeq] = {
+    sql"select output from edge where input = $input".query[ByteSeq].stream
   }
 }
