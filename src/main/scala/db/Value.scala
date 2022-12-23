@@ -12,14 +12,14 @@ object Value {
   val setup: ConnectionIO[Int] =
     sql"""
       CREATE TABLE value (
-        id VARCHAR NOT NULL,
-        value VARCHAR NOT NULL,
-        PRIMARY KEY(id)
+        id BYTEA NOT NULL,
+        value BYTEA NOT NULL,
+        PRIMARY KEY (id)
       )
     """.stripMargin.update.run
 
-  def insert(value: String): ConnectionIO[String] = {
-    val id = digest(value)
+  def insert(value: ByteSeq): ConnectionIO[ByteSeq] = {
+    val id = value.digest
     sql"insert into value (id, value) values ($id, $value) ON CONFLICT DO NOTHING".update.run *> connection
       .pure(id)
   }

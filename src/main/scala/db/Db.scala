@@ -1,11 +1,21 @@
 package db;
 
+import doobie.Meta
 import java.security.MessageDigest
+import scala.collection.immutable.ArraySeq
 
-// TODO: confirm digest has consistent length
-def digest(value: String): String =
-  MessageDigest
-    .getInstance("SHA-256")
-    .digest(value.getBytes("UTF-8"))
-    .map("%02x".format(_))
-    .mkString
+type ByteSeq = ArraySeq[Byte]
+
+implicit val byteSeqMeta: Meta[ByteSeq] =
+  Meta[Array[Byte]].imap(ArraySeq.unsafeWrapArray)(_.toArray)
+
+extension (array: ByteSeq)
+  def digest: ByteSeq =
+    ArraySeq.unsafeWrapArray(
+      MessageDigest
+        .getInstance("SHA-256")
+        .digest(array.toArray)
+    )
+
+  def invert: ByteSeq =
+    array.map(v => (~v).toByte)
